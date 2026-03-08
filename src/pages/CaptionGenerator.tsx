@@ -1,5 +1,4 @@
 import { useState } from "react";
-import axios from "axios";
 import { Sparkles, Copy, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const tones = ["Aesthetic", "Funny", "Professional", "Motivational", "Casual"];
 
@@ -28,15 +28,30 @@ export default function CaptionGenerator() {
     setHashtags([]);
 
     try {
-      const { data } = await axios.post("http://127.0.0.1:5000/generate", {
-        topic,
-        tone: tone.toLowerCase(),
+      const captionLength = localStorage.getItem("hashcap-caption-length") || "medium";
+
+      const { data, error } = await supabase.functions.invoke("generate", {
+        body: { topic, tone: tone.toLowerCase(), captionLength },
       });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+        return;
+      }
+
       setCaption(data.caption || "");
-      const tags = Array.isArray(data.hashtags) ? data.hashtags : typeof data.hashtags === "string" ? [data.hashtags] : [];
+      const tags = Array.isArray(data.hashtags) ? data.hashtags : [];
       setHashtags(tags);
-    } catch {
-      toast({ title: "Error", description: "Failed to generate. Make sure the Flask API server is running at localhost:5000.", variant: "destructive" });
+
+      // Save to history
+      const history = JSON.parse(localStorage.getItem("hashcap-history") || "[]");
+      history.unshift({ topic, tone, caption: data.caption, hashtags: tags, timestamp: Date.now() });
+      localStorage.setItem("hashcap-history", JSON.stringify(history.slice(0, 50)));
+    } catch (err: any) {
+      const msg = err?.message || "Failed to generate.";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
