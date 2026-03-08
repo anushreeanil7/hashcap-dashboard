@@ -1,5 +1,4 @@
 import { useState } from "react";
-import axios from "axios";
 import { Hash, Copy, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const tones = ["Aesthetic", "Funny", "Professional", "Motivational", "Casual"];
 
@@ -26,14 +26,20 @@ export default function HashtagGenerator() {
     setHashtags([]);
 
     try {
-      const { data } = await axios.post("http://127.0.0.1:5000/generate", {
-        topic,
-        tone: tone.toLowerCase(),
+      const { data, error } = await supabase.functions.invoke("generate", {
+        body: { topic, tone: tone.toLowerCase() },
       });
-      const tags = Array.isArray(data.hashtags) ? data.hashtags : typeof data.hashtags === "string" ? [data.hashtags] : [];
+
+      if (error) throw error;
+      if (data.error) {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+        return;
+      }
+
+      const tags = Array.isArray(data.hashtags) ? data.hashtags : [];
       setHashtags(tags);
-    } catch {
-      toast({ title: "Error", description: "Failed to generate. Make sure the Flask API server is running at localhost:5000.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed to generate.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
