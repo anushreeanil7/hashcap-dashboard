@@ -26,19 +26,14 @@ export default function HashtagGenerator() {
     setHashtags([]);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, tone: tone.toLowerCase() }),
+      const { data } = await axios.post("http://127.0.0.1:5000/generate", {
+        topic,
+        tone: tone.toLowerCase(),
       });
-
-      if (!res.ok) throw new Error("API request failed");
-
-      const data = await res.json();
       const tags = Array.isArray(data.hashtags) ? data.hashtags : typeof data.hashtags === "string" ? [data.hashtags] : [];
       setHashtags(tags);
     } catch {
-      toast({ title: "Error", description: "Failed to generate. Make sure the API server is running at localhost:5000.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate. Make sure the Flask API server is running at localhost:5000.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
