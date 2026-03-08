@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import { Sparkles, Copy, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
