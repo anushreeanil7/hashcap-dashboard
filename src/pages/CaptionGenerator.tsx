@@ -13,7 +13,7 @@ export default function CaptionGenerator() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("");
   const [caption, setCaption] = useState("");
-  const [hashtags, setHashtags] = useState("");
+  const [hashtags, setHashtags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
@@ -24,7 +24,7 @@ export default function CaptionGenerator() {
 
     setLoading(true);
     setCaption("");
-    setHashtags("");
+    setHashtags([]);
 
     try {
       const res = await fetch("http://127.0.0.1:5000/generate", {
@@ -37,9 +37,10 @@ export default function CaptionGenerator() {
 
       const data = await res.json();
       setCaption(data.caption || "");
-      setHashtags(data.hashtags || "");
+      const tags = Array.isArray(data.hashtags) ? data.hashtags : typeof data.hashtags === "string" ? [data.hashtags] : [];
+      setHashtags(tags);
     } catch {
-      toast({ title: "Error", description: "Failed to generate. Make sure the API is running.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate. Make sure the API server is running at localhost:5000.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -49,6 +50,8 @@ export default function CaptionGenerator() {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied!", description: `${label} copied to clipboard.` });
   };
+
+  const hashtagsText = hashtags.join(" ");
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -70,7 +73,7 @@ export default function CaptionGenerator() {
             <Label htmlFor="topic">Topic</Label>
             <Input
               id="topic"
-              placeholder="e.g. sunset beach, fitness gym, travel vlog"
+              placeholder='e.g. "sunset beach", "fitness gym", "travel vlog"'
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
@@ -110,7 +113,7 @@ export default function CaptionGenerator() {
         </CardContent>
       </Card>
 
-      {(caption || hashtags) && (
+      {(caption || hashtags.length > 0) && (
         <div className="grid gap-4 md:grid-cols-2">
           {caption && (
             <Card className="shadow-md border-0">
@@ -126,14 +129,14 @@ export default function CaptionGenerator() {
             </Card>
           )}
 
-          {hashtags && (
+          {hashtags.length > 0 && (
             <Card className="shadow-md border-0">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Hashtags</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm leading-relaxed text-primary font-medium">{hashtags}</p>
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(hashtags, "Hashtags")}>
+                <p className="text-sm leading-relaxed text-primary font-medium">{hashtagsText}</p>
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(hashtagsText, "Hashtags")}>
                   <Copy className="mr-2 h-3.5 w-3.5" /> Copy Hashtags
                 </Button>
               </CardContent>
